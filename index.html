@@ -117,7 +117,7 @@ main{background-image:radial-gradient(circle at 100% 0,rgba(255,95,162,.12),tran
 <div class="deco" aria-hidden="true"><i style="left:5%;top:8%;animation-delay:-0s">📚</i><i style="left:86%;top:6%;animation-delay:-2s">✏️</i><i style="left:10%;top:72%;animation-delay:-4s">🎒</i><i style="left:88%;top:66%;animation-delay:-1s">⭐</i><i style="left:46%;top:90%;animation-delay:-3s">📐</i><i style="left:78%;top:38%;animation-delay:-5s">🎨</i><i style="left:3%;top:40%;animation-delay:-2.5s">🔬</i><i style="left:60%;top:4%;animation-delay:-3.5s">🧮</i></div>
 <main id="app"></main>
 <script>
-const VERSION="2.1";
+const VERSION="2.3";
 // [назва, "на ..." для питання, символ]
 const S={
  ist:["Історія","історії","📜"],tech:["Технології","технологіях","🛠️"],bio:["Біологія","біології","🧬"],
@@ -212,7 +212,12 @@ function dbgHtml(){
 }
 function lessonLine(k,i){return `<div class="les"><span style="display:block"><b>${i+1}.</b> ${S[k][2]} ${e(S[k][0])}</span><span><button data-mv="${i}:-1" aria-label="Вище">↑</button><button data-mv="${i}:1" aria-label="Нижче">↓</button><button data-rm="${i}" aria-label="Видалити">✕</button></span></div>`}
 function schedLine(key,lists){return ` ${key}:[${lists.map(l=>"["+l.map(k=>`"${k}"`).join(",")+"]").join(",")}],`}
-function actBtn(a,last){return okAns(a)?`<button class="go" data-act="next">${last?"Готово 🎉":"Далі ➡️"}</button>`:`<button data-act="skip">${st.list[st.i]===LUNCH?"Обіду не було ❌":"Урок скасовано ❌"}</button>${st.who==="roma"?'<button data-act="alarm">Була тривога 🚨</button>':""}`}
+function actBtn(a,last){
+ const lunch=st.list[st.i]===LUNCH;
+ const main=okAns(a)?`<button class="go" data-act="next">${last?"Готово 🎉":"Далі ➡️"}</button>`:`<button data-act="skip">${lunch?"Обіду не було ❌":"Урок скасовано ❌"}</button>`;
+ const sub=lunch?"":`<button class="${a.sub?"on":""}" data-act="sub">Була заміна 🔄</button>`;
+ return main+sub;
+}
 let lastKey="";
 function render(){
  let h="",dbg=false;
@@ -236,7 +241,7 @@ function render(){
   <p class="sub" style="margin-bottom:8px">${l===LUNCH?"Оцінка обіду":"Оцінка уроку"}</p>
   <div class="row rate">${RATE.map((r,i)=>`<button class="${a.r===i+1?'on':''}" style="--c:hsl(${i*13} 95% 62%)" data-r="${i+1}">${r}<small>${i+1}</small></button>`).join("")}</div>
   <div class="row"><span id="act">${actBtn(a,last)}</span><button class="ghost" data-act="prev">← Назад</button></div>
-  <p class="sub" id="hint" style="font-size:.85rem" ${okAns(a)?"hidden":""}>Щоб піти далі, напиши опис і постав оцінку. Або натисни, що уроку не було.</p>`;
+  <p class="sub" id="hint" style="font-size:.85rem" ${okAns(a)?"hidden":""}>Щоб піти далі, напиши опис і постав оцінку. Або натисни, що уроку не було. Якщо була заміна, натисни «Була заміна» і розкажи, що було.</p>`;
  }else if(st.step==="out"){
   h=`<div class="hero">✅</div><h2>Все готово!</h2>
   <pre id="out">${e(build())}</pre>
@@ -276,8 +281,7 @@ function build(){
  const nm=st.who==="roma"?"Рома":"Максим",ic=st.who==="roma"?"😎":"🥐";
  const rated=[];
  const body=st.list.map((l,i)=>{
-  const a=st.ans[i],title=`${l[2]} ${l[0]}${l[3]?", "+l[3]+"-й урок":""}`;
-  if(a.r===-2)return `${title} — була тривога 🚨`;
+  const a=st.ans[i],title=`${l[2]} ${l[0]}${l[3]?", "+l[3]+"-й урок":""}${a.sub?" (заміна 🔄)":""}`;
   if(a.r<=0)return `${title} — ${l===LUNCH?"не було":"скасовано"}`;
   rated.push(a.r);
   return `${title} — ${a.r}/10 ${RATE[a.r-1]}\n${a.text.trim()}`;
@@ -322,7 +326,7 @@ $.addEventListener("click",async ev=>{
  else if(d.act==="home"){st.step="who"}
  else if(d.act==="next"){save();if(!okAns(st.ans[st.i]))return;if(st.i<st.list.length-1)st.i++;else st.step="out"}
  else if(d.act==="skip"){st.ans[st.i]={text:"-",r:-1};if(st.i<st.list.length-1)st.i++;else st.step="out"}
- else if(d.act==="alarm"){st.ans[st.i]={text:"-",r:-2};if(st.i<st.list.length-1)st.i++;else st.step="out"}
+ else if(d.act==="sub"){save();const a=st.ans[st.i];a.sub=!a.sub}
  else if(d.act==="prev"){save();if(st.step==="out")st.step="q";else if(st.i>0)st.i--;else st.step=st.who==="max"?"week":"who"}
  else if(d.act==="edit"){st.step="edWho"}
  else if(d.ed){st.ed={key:d.ed,day:0,pick:false,lists:SCHED[d.ed].map(l=>l.filter(k=>k!=="nolunch")),lunch:SCHED[d.ed].map(l=>!l.includes("nolunch"))};st.step="edDay"}
